@@ -1,0 +1,14 @@
+.deploy/
+.codex-tmp/
+*.bak
+*.tmp
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+gmail-app-password
+restic-password
+*.key
+*.pem

@@ -1,0 +1,20 @@
+# =============================================================================
+# Job de scrape do restic-exporter (adicione em scrape_configs do Prometheus
+# que roda no Lenovo). O alvo e o host Dell na porta 8001.
+# =============================================================================
+#
+# Cole este bloco dentro de scrape_configs no prometheus.yml do Lenovo:
+#
+scrape_configs:
+  - job_name: restic
+    # O exporter roda o restic (snapshots, stats e check) a cada coleta interna
+    # de 30 min. Nao adianta raspar mais rapido que isso, o valor so muda quando
+    # o exporter recoleta. Um scrape a cada 60s apenas le o ultimo valor em cache.
+    scrape_interval: 60s
+    scrape_timeout: 30s
+    static_configs:
+      - targets:
+          - "192.168.100.2:8001"
+        labels:
+          instance: homelab-dell
+          site: homelab

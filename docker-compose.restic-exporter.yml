@@ -1,0 +1,83 @@
+# =============================================================================
+# restic-exporter para o HomeLab (host Dell Wyse 3290, 192.168.100.2)
+# =============================================================================
+# Expoe as metricas do repositorio Restic em /srv/backup/restic para que o
+# Prometheus do Lenovo faca o scrape via rede na porta 8001.
+#
+# O systemd continua sendo o executor dos backups. Este container apenas LE o
+# repositorio (snapshots, stats e check). Ele nao roda backup, forget nem prune.
+#
+# O exporter atual executa as consultas Restic com --no-lock, portanto o
+# repositorio pode e deve ser montado somente leitura.
+#
+# Para incorporar na stack "homelab" do Portainer, copie o bloco do servico
+# para o compose da stack. Como stack isolada, use este arquivo direto:
+#   docker compose -f docker-compose.restic-exporter.yml up -d
+# =============================================================================
+
+name: restic-monitoring
+
+services:
+  restic-exporter:
+    image: ngosang/restic-exporter:2.1.2@sha256:a8f9cfa3016237c7008aefa4d9c6639bc9b34d2582eed07ac58dcf56632e4170
+    container_name: restic-exporter
+    hostname: homelab
+    restart: unless-stopped
+    environment:
+      TZ: America/Sao_Paulo
+      # Caminho do repositorio DENTRO do container (mapeado abaixo em volumes)
+      RESTIC_REPOSITORY: /repo
+      # Arquivo de senha montado somente leitura a partir de /etc/homelab-backup
+      RESTIC_PASSWORD_FILE: /run/secrets/restic-password
+      # Intervalo de coleta em segundos (1800 = 30 min). Evita rodar o check
+      # com frequencia alta e reduz a chance de disputa de lock com o backup.
+      REFRESH_INTERVAL: "1800"
+      LISTEN_PORT: "8001"
+      LISTEN_ADDRESS: 0.0.0.0
+      LOG_LEVEL: INFO
+      # Falhas durante a coleta inicial impedem que um exporter sem metricas
+      # seja apresentado como saudavel.
+      EXIT_ON_ERROR: "True"
+      # Check de integridade ligado (repositorio pequeno, check de metadados e
+      # barato). Vira a metrica restic_check_success, usada no alerta.
+      NO_CHECK: "False"
+      NO_GLOBAL_STATS: "False"
+      NO_LEGACY_STATS: "False"
+      NO_LOCKS: "False"
+    volumes:
+      # O exporter usa --no-lock; nao precisa escrever no repositorio.
+      - /srv/backup/restic:/repo:ro
+      # Senha do repositorio, somente leitura
+      - /etc/homelab-backup/restic-password:/run/secrets/restic-password:ro
+      # Cache do Restic, para o exporter nao reprocessar indices a cada coleta
+      - restic_exporter_cache:/root/.cache/restic
+    ports:
+      # Publicado na LAN para o Prometheus do Lenovo fazer o scrape.
+      # Restrinja a origem na cadeia DOCKER-USER (veja o README).
+      - "192.168.100.2:8001:8001"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/metrics', timeout=5)"
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  restic_exporter_cache:
+    name: homelab_restic_exporter_cache

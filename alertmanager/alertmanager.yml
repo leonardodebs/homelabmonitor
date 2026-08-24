@@ -1,0 +1,30 @@
+global:
+  resolve_timeout: 5m
+  smtp_from: leonardodebs@gmail.com
+  smtp_smarthost: smtp.gmail.com:587
+  smtp_hello: vmlab
+  smtp_auth_username: leonardodebs@gmail.com
+  smtp_auth_password_file: /run/secrets/gmail_app_password
+  smtp_require_tls: true
+
+templates:
+  - /etc/alertmanager/templates/*.tmpl
+
+route:
+  receiver: gmail-homelab
+  group_by:
+    - alertname
+    - instance
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 6h
+
+receivers:
+  - name: gmail-homelab
+    email_configs:
+      - to: leonardodebs@gmail.com
+        from: leonardodebs@gmail.com
+        send_resolved: true
+        headers:
+          Subject: '[HomeLab] {{ .Status }} - {{ .CommonLabels.alertname }}'
+        html: '{{ template "homelab.email.html" . }}'

@@ -1,0 +1,134 @@
+# =============================================================================
+# Regras de alerta do Restic (arquivo de rules do Prometheus no Lenovo).
+# Referencie este arquivo em rule_files do prometheus.yml, por exemplo:
+#
+#   rule_files:
+#     - /etc/prometheus/rules/restic-alerts.yml
+#
+# Os limites seguem a cadencia real do HomeLab: backup diario as 03:15,
+# manutencao (forget, prune e check profundo) aos domingos as 04:30.
+# =============================================================================
+
+groups:
+  - name: restic-homelab
+    rules:
+      # ---------------------------------------------------------------------
+      # Exporter ou host fora do ar. Sem isso, todos os outros alertas ficam
+      # cegos, entao este e o primeiro a disparar.
+      # ---------------------------------------------------------------------
+      - alert: ResticExporterDown
+        expr: up{job="restic"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: restic
+        annotations:
+          summary: "restic-exporter inacessivel em {{ $labels.instance }}"
+          description: "O Prometheus nao consegue raspar 192.168.100.2:8001 ha mais de 5 minutos. Verifique o container restic-exporter e a regra do UFW."
+
+      # ---------------------------------------------------------------------
+      # Backup atrasado. O snapshot mais recente passou da janela esperada.
+      # 26h cobre o backup diario mais o RandomizedDelaySec de 5 min.
+      # ---------------------------------------------------------------------
+      - alert: ResticBackupAtrasado
+        expr: (time() - restic_backup_timestamp{job="restic"} > 26 * 3600) and (time() - restic_backup_timestamp{job="restic"} <= 48 * 3600)
+        for: 30m
+        labels:
+          severity: warning
+          service: restic
+        annotations:
+          summary: "Backup Restic atrasado em {{ $labels.client_hostname }}"
+          description: "O ultimo snapshot de {{ $labels.client_hostname }} tem {{ $value | humanizeDuration }}. O backup diario das 03:15 pode ter falhado. Verifique: systemctl status homelab-backup.service."
+
+      - alert: ResticBackupCritico
+        expr: time() - restic_backup_timestamp{job="restic"} > 48 * 3600
+        for: 30m
+        labels:
+          severity: critical
+          service: restic
+        annotations:
+          summary: "Backup Restic critico em {{ $labels.client_hostname }}"
+          description: "O ultimo snapshot de {{ $labels.client_hostname }} tem {{ $value | humanizeDuration }}. Ja se passaram duas janelas diarias sem backup. Investigue o disco /srv/backup e o servico homelab-backup."
+
+      # ---------------------------------------------------------------------
+      # Falha de integridade. restic_check_success == 0 significa que o check
+      # de metadados apontou problema no repositorio.
+      # ---------------------------------------------------------------------
+      - alert: ResticCheckFalhou
+        expr: restic_check_success{job="restic"} == 0
+        for: 15m
+        labels:
+          severity: critical
+          service: restic
+        annotations:
+          summary: "Check de integridade do repositorio Restic falhou"
+          description: "O restic check retornou falha. Rode manualmente: sudo bash -c 'set -a; source /etc/homelab-backup/restic.env; set +a; restic check --read-data'."
+
+      # ---------------------------------------------------------------------
+      # Repositorio sem nenhum snapshot. Indica repo vazio, apontamento errado
+      # ou perda de dados.
+      # ---------------------------------------------------------------------
+      - alert: ResticSemSnapshots
+        expr: restic_snapshots_total{job="restic"} == 0
+        for: 15m
+        labels:
+          severity: critical
+          service: restic
+        annotations:
+          summary: "Repositorio Restic sem snapshots"
+          description: "restic_snapshots_total esta em zero. Confirme se o RESTIC_REPOSITORY do exporter aponta para /srv/backup/restic."
+
+      # ---------------------------------------------------------------------
+      # O endpoint responde, mas a coleta inicial nao produziu metricas Restic.
+      # ---------------------------------------------------------------------
+      - alert: ResticExporterSemMetricas
+        expr: (up{job="restic"} == 1) unless on(job, instance) restic_backup_timestamp{job="restic"}
+        for: 15m
+        labels:
+          severity: critical
+          service: restic
+        annotations:
+          summary: "restic-exporter ativo, mas sem metricas de backup"
+          description: "O endpoint responde, porem nenhuma metrica restic_backup_timestamp esta disponivel. Verifique os logs do restic-exporter."
+
+      # ---------------------------------------------------------------------
+      # Lock preso. Um lock que persiste por mais de 2h costuma ser residuo de
+      # operacao interrompida, e bloqueia o proximo backup ou prune.
+      # ---------------------------------------------------------------------
+      - alert: ResticLockPreso
+        expr: restic_locks_total{job="restic"} > 0
+        for: 2h
+        labels:
+          severity: warning
+          service: restic
+        annotations:
+          summary: "Lock do Restic preso ha mais de 2h"
+          description: "Ha {{ $value }} lock(s) no repositorio ha mais de 2h. Se nenhuma operacao estiver rodando, libere com: restic unlock."
+
+      # ---------------------------------------------------------------------
+      # Crescimento anormal do repositorio. Alerta informativo: salto brusco de
+      # tamanho pode indicar dado novo grande ou prune que nao rodou.
+      # ---------------------------------------------------------------------
+      - alert: ResticRepoCrescendoRapido
+        expr: delta(restic_size_total{job="restic"}[7d]) > 5 * 1024 * 1024 * 1024
+        for: 1h
+        labels:
+          severity: info
+          service: restic
+        annotations:
+          summary: "Repositorio Restic cresceu mais de 5 GiB em 7 dias"
+          description: "Crescimento de {{ $value | humanize1024 }}B em 7 dias. Confirme se a manutencao semanal (prune) rodou no domingo."
+
+# =============================================================================
+# Exemplo opcional de alerta de disco do /srv/backup. O Node Exporter já está
+# implantado no Dell; habilite a regra abaixo em um grupo próprio se o ponto de
+# montagem aparecer separadamente nas métricas:
+#
+#   - alert: ResticDiscoBackupCheio
+#     expr: (node_filesystem_avail_bytes{mountpoint="/srv/backup"}
+#            / node_filesystem_size_bytes{mountpoint="/srv/backup"}) * 100 < 15
+#     for: 30m
+#     labels: { severity: warning, service: restic }
+#     annotations:
+#       summary: "Menos de 15% livres em /srv/backup"
+# =============================================================================

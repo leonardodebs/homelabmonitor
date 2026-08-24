@@ -1,0 +1,248 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 39,
+  "tags": ["homelab", "dell", "node-exporter", "cadvisor", "beszel-replacement"],
+  "time": { "from": "now-7d", "to": "now" },
+  "refresh": "15s",
+  "title": "Dell Overview",
+  "uid": "dell-overview",
+  "description": "Monitoramento completo do Dell homelab: sistema, disco, temperaturas e containers Docker.",
+  "templating": {
+    "list": [
+      {
+        "name": "interface",
+        "label": "Interface de rede",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "definition": "label_values(node_network_receive_bytes_total{job=\"node-dell\",device!=\"lo\"}, device)",
+        "query": { "query": "label_values(node_network_receive_bytes_total{job=\"node-dell\",device!=\"lo\"}, device)", "refId": "StandardVariableQuery" },
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "refresh": 1,
+        "current": { "selected": true, "text": ["All"], "value": ["$__all"] }
+      },
+      {
+        "name": "disk",
+        "label": "Disco",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "definition": "label_values(node_disk_read_bytes_total{job=\"node-dell\",device!~\"loop.*|ram.*\"}, device)",
+        "query": { "query": "label_values(node_disk_read_bytes_total{job=\"node-dell\",device!~\"loop.*|ram.*\"}, device)", "refId": "StandardVariableQuery" },
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "refresh": 1,
+        "current": { "selected": true, "text": ["dm-0"], "value": ["dm-0"] }
+      },
+      {
+        "name": "container",
+        "label": "Container",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "definition": "label_values(container_last_seen{job=\"cadvisor-dell\",name!=\"\"}, name)",
+        "query": { "query": "label_values(container_last_seen{job=\"cadvisor-dell\",name!=\"\"}, name)", "refId": "StandardVariableQuery" },
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "refresh": 1,
+        "current": { "selected": true, "text": ["All"], "value": ["$__all"] }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "title": "Resumo do Dell",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100
+    },
+    {
+      "type": "stat",
+      "title": "Servidor",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 1 },
+      "id": 1,
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "textMode": "value" },
+      "fieldConfig": { "defaults": { "mappings": [ { "type": "value", "options": { "0": { "text": "OFFLINE", "color": "red" }, "1": { "text": "ONLINE", "color": "green" } } } ], "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] } }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "up{job=\"node-dell\"}", "instant": true, "datasource": { "type": "prometheus", "uid": "prometheus" } } ]
+    },
+    {
+      "type": "stat",
+      "title": "Uptime",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 5, "w": 5, "x": 4, "y": 1 },
+      "id": 2,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "center", "textMode": "value" },
+      "fieldConfig": { "defaults": { "unit": "s", "color": { "mode": "fixed", "fixedColor": "blue" } }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "node_time_seconds{job=\"node-dell\"} - node_boot_time_seconds{job=\"node-dell\"}", "instant": true, "datasource": { "type": "prometheus", "uid": "prometheus" } } ]
+    },
+    {
+      "type": "stat",
+      "title": "Nucleos de CPU",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 5, "w": 5, "x": 9, "y": 1 },
+      "id": 3,
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value" },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0, "color": { "mode": "fixed", "fixedColor": "purple" } }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "count(count by (cpu) (node_cpu_seconds_total{job=\"node-dell\",mode=\"idle\"}))", "instant": true, "datasource": { "type": "prometheus", "uid": "prometheus" } } ]
+    },
+    {
+      "type": "stat",
+      "title": "Memoria total",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 5, "w": 5, "x": 14, "y": 1 },
+      "id": 4,
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value" },
+      "fieldConfig": { "defaults": { "unit": "bytes", "color": { "mode": "fixed", "fixedColor": "green" } }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "node_memory_MemTotal_bytes{job=\"node-dell\"}", "instant": true, "datasource": { "type": "prometheus", "uid": "prometheus" } } ]
+    },
+    {
+      "type": "stat",
+      "title": "Containers monitorados",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 5, "w": 5, "x": 19, "y": 1 },
+      "id": 5,
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value" },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0, "color": { "mode": "fixed", "fixedColor": "orange" } }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "count(container_last_seen{job=\"cadvisor-dell\",name!=\"\"})", "instant": true, "datasource": { "type": "prometheus", "uid": "prometheus" } } ]
+    },
+    {
+      "type": "row",
+      "title": "Core",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 6 },
+      "id": 101
+    },
+    {
+      "type": "timeseries",
+      "title": "Uso de CPU",
+      "description": "Utilizacao media da CPU do Dell.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 7 },
+      "id": 10,
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2 }, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 90 } ] } }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "100 - (avg(rate(node_cpu_seconds_total{job=\"node-dell\",mode=\"idle\"}[5m])) * 100)", "legendFormat": "CPU", "datasource": { "type": "prometheus", "uid": "prometheus" } } ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Uso de Memoria",
+      "description": "Memoria utilizada, total e swap utilizada.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 7 },
+      "id": 11,
+      "fieldConfig": { "defaults": { "unit": "bytes", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2 } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "node_memory_MemTotal_bytes{job=\"node-dell\"} - node_memory_MemAvailable_bytes{job=\"node-dell\"}", "legendFormat": "usada", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "node_memory_MemTotal_bytes{job=\"node-dell\"}", "legendFormat": "total", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "C", "expr": "node_memory_SwapTotal_bytes{job=\"node-dell\"} - node_memory_SwapFree_bytes{job=\"node-dell\"}", "legendFormat": "swap usada", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Carga Media",
+      "description": "Load average de 1, 5 e 15 minutos.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 7 },
+      "id": 12,
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "node_load1{job=\"node-dell\"}", "legendFormat": "1 min", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "node_load5{job=\"node-dell\"}", "legendFormat": "5 min", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "C", "expr": "node_load15{job=\"node-dell\"}", "legendFormat": "15 min", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Largura de Banda",
+      "description": "Trafego das interfaces selecionadas.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 15 },
+      "id": 13,
+      "fieldConfig": { "defaults": { "unit": "Bps", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 15, "lineWidth": 2 } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "rate(node_network_receive_bytes_total{job=\"node-dell\",device=~\"$interface\"}[5m])", "legendFormat": "recebido {{device}}", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "rate(node_network_transmit_bytes_total{job=\"node-dell\",device=~\"$interface\"}[5m])", "legendFormat": "enviado {{device}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Temperatura",
+      "description": "Temperaturas dos sensores do Dell.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 15 },
+      "id": 14,
+      "fieldConfig": { "defaults": { "unit": "celsius", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 5, "lineWidth": 2 }, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 65 }, { "color": "red", "value": 75 } ] } }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "node_hwmon_temp_celsius{job=\"node-dell\",sensor!=\"temp1\"}", "legendFormat": "{{chip}} {{sensor}}", "datasource": { "type": "prometheus", "uid": "prometheus" } } ]
+    },
+    {
+      "type": "row",
+      "title": "Disco",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 24 },
+      "id": 102
+    },
+    {
+      "type": "timeseries",
+      "title": "Uso do Disco Raiz",
+      "description": "Espaco utilizado e disponivel no filesystem raiz.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 25 },
+      "id": 20,
+      "fieldConfig": { "defaults": { "unit": "bytes", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2 } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "node_filesystem_size_bytes{job=\"node-dell\",mountpoint=\"/\",fstype!~\"tmpfs|overlay|squashfs\"} - node_filesystem_avail_bytes{job=\"node-dell\",mountpoint=\"/\",fstype!~\"tmpfs|overlay|squashfs\"}", "legendFormat": "usado", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "node_filesystem_avail_bytes{job=\"node-dell\",mountpoint=\"/\",fstype!~\"tmpfs|overlay|squashfs\"}", "legendFormat": "disponivel", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "E/S de Disco",
+      "description": "Taxa de leitura e escrita dos discos selecionados.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 25 },
+      "id": 21,
+      "fieldConfig": { "defaults": { "unit": "Bps", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 15, "lineWidth": 2 } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "rate(node_disk_read_bytes_total{job=\"node-dell\",device=~\"$disk\"}[5m])", "legendFormat": "leitura {{device}}", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "rate(node_disk_written_bytes_total{job=\"node-dell\",device=~\"$disk\"}[5m])", "legendFormat": "escrita {{device}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Containers Docker",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 34 },
+      "id": 103
+    },
+    {
+      "type": "timeseries",
+      "title": "Uso de CPU por Container",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 10, "w": 8, "x": 0, "y": 35 },
+      "id": 30,
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "stacking": { "mode": "normal", "group": "A" } } }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "sum by (name) (rate(container_cpu_usage_seconds_total{job=\"cadvisor-dell\",name=~\"$container\",image!=\"\"}[5m])) * 100", "legendFormat": "{{name}}", "datasource": { "type": "prometheus", "uid": "prometheus" } } ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Uso de Memoria por Container",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 10, "w": 8, "x": 8, "y": 35 },
+      "id": 31,
+      "fieldConfig": { "defaults": { "unit": "bytes", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "stacking": { "mode": "normal", "group": "A" } } }, "overrides": [] },
+      "targets": [ { "refId": "A", "expr": "sum by (name) (container_memory_working_set_bytes{job=\"cadvisor-dell\",name=~\"$container\",image!=\"\"})", "legendFormat": "{{name}}", "datasource": { "type": "prometheus", "uid": "prometheus" } } ]
+    },
+    {
+      "type": "timeseries",
+      "title": "E/S de Rede por Container",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 10, "w": 8, "x": 16, "y": 35 },
+      "id": 32,
+      "fieldConfig": { "defaults": { "unit": "Bps", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 15, "lineWidth": 2 } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum by (name) (rate(container_network_receive_bytes_total{job=\"cadvisor-dell\",name=~\"$container\",image!=\"\"}[5m]))", "legendFormat": "RX {{name}}", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "sum by (name) (rate(container_network_transmit_bytes_total{job=\"cadvisor-dell\",name=~\"$container\",image!=\"\"}[5m]))", "legendFormat": "TX {{name}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    }
+  ]
+}

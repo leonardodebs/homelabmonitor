@@ -1,0 +1,91 @@
+# Alertas de disponibilidade e recursos do servidor Dell.
+groups:
+  - name: dell-node
+    rules:
+      - alert: NodeDellExporterDown
+        expr: up{job="node-dell"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: node-exporter
+          server: dell
+        annotations:
+          summary: "Node Exporter do Dell esta inacessivel"
+          description: "O Prometheus nao coleta {{ $labels.instance }} ha mais de 5 minutos. Verifique o container node-exporter-dell e a porta 9100."
+
+      - alert: NodeDellCpuAlta
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{job="node-dell",mode="idle"}[5m])) * 100) > 90
+        for: 15m
+        labels:
+          severity: warning
+          service: host
+          server: dell
+        annotations:
+          summary: "CPU alta no Dell"
+          description: "A CPU de {{ $labels.instance }} permaneceu acima de 90% por 15 minutos. Valor atual: {{ $value | printf \"%.1f\" }}%."
+
+      - alert: NodeDellMemoriaAlta
+        expr: 100 * (1 - (node_memory_MemAvailable_bytes{job="node-dell"} / node_memory_MemTotal_bytes{job="node-dell"})) > 90
+        for: 15m
+        labels:
+          severity: warning
+          service: host
+          server: dell
+        annotations:
+          summary: "Memoria alta no Dell"
+          description: "O uso de memoria de {{ $labels.instance }} permaneceu acima de 90% por 15 minutos. Valor atual: {{ $value | printf \"%.1f\" }}%."
+
+      - alert: NodeDellDiscoRaizAlerta
+        expr: (100 * (1 - (node_filesystem_avail_bytes{job="node-dell",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{job="node-dell",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"})) > 85) and (100 * (1 - (node_filesystem_avail_bytes{job="node-dell",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{job="node-dell",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"})) <= 95)
+        for: 30m
+        labels:
+          severity: warning
+          service: filesystem
+          server: dell
+        annotations:
+          summary: "Disco raiz do Dell acima de 85%"
+          description: "O filesystem raiz de {{ $labels.instance }} esta com {{ $value | printf \"%.1f\" }}% de uso."
+
+      - alert: NodeDellDiscoRaizCritico
+        expr: 100 * (1 - (node_filesystem_avail_bytes{job="node-dell",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{job="node-dell",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"})) > 95
+        for: 15m
+        labels:
+          severity: critical
+          service: filesystem
+          server: dell
+        annotations:
+          summary: "Disco raiz do Dell em nivel critico"
+          description: "O filesystem raiz de {{ $labels.instance }} esta com {{ $value | printf \"%.1f\" }}% de uso."
+
+      - alert: NodeDellFilesystemSomenteLeitura
+        expr: node_filesystem_readonly{job="node-dell",mountpoint="/"} == 1
+        for: 5m
+        labels:
+          severity: critical
+          service: filesystem
+          server: dell
+        annotations:
+          summary: "Filesystem raiz do Dell esta somente leitura"
+          description: "O filesystem raiz de {{ $labels.instance }} foi remontado como somente leitura."
+
+      - alert: NodeDellTemperaturaAlta
+        expr: node_hwmon_temp_celsius{job="node-dell",chip=~"platform_coretemp.*|thermal_thermal_zone[12]"} > 75
+        for: 5m
+        labels:
+          severity: warning
+          service: hardware
+          server: dell
+        annotations:
+          summary: "Temperatura alta no Dell"
+          description: "O sensor {{ $labels.chip }}/{{ $labels.sensor }} de {{ $labels.instance }} esta em {{ $value | printf \"%.1f\" }} graus Celsius."
+
+      - alert: CadvisorDellDown
+        expr: up{job="cadvisor-dell"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: cadvisor
+          server: dell
+        annotations:
+          summary: "cAdvisor do Dell esta inacessivel"
+          description: "O Prometheus nao coleta metricas dos containers de {{ $labels.instance }} ha mais de 5 minutos."

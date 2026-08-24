@@ -1,0 +1,12 @@
+# Job de scrape do cAdvisor instalado no Dell.
+scrape_configs:
+  - job_name: cadvisor-dell
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    static_configs:
+      - targets:
+          - "192.168.100.2:8081"
+        labels:
+          instance: homelab-dell
+          server: dell
+          site: homelab

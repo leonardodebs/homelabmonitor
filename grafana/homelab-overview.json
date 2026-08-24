@@ -1,0 +1,183 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 39,
+  "tags": ["homelab", "overview"],
+  "time": { "from": "now-1h", "to": "now" },
+  "refresh": "15s",
+  "title": "Homelab Overview",
+  "uid": "homelab-overview",
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "type": "row",
+      "title": "Servidor",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100
+    },
+    {
+      "type": "gauge",
+      "title": "CPU (%)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 6, "x": 0, "y": 1 },
+      "id": 1,
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 90 } ] } }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "100 - (avg(rate(node_cpu_seconds_total{job=\"node\",mode=\"idle\"}[5m])) * 100)" } ]
+    },
+    {
+      "type": "gauge",
+      "title": "Memória (%)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 6, "x": 6, "y": 1 },
+      "id": 2,
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 75 }, { "color": "red", "value": 90 } ] } }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "100 * (1 - (node_memory_MemAvailable_bytes{job=\"node\"} / node_memory_MemTotal_bytes{job=\"node\"}))" } ]
+    },
+    {
+      "type": "gauge",
+      "title": "Disco / (%)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 6, "x": 12, "y": 1 },
+      "id": 3,
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 75 }, { "color": "red", "value": 90 } ] } }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "100 - (node_filesystem_avail_bytes{job=\"node\",mountpoint=\"/\"} / node_filesystem_size_bytes{job=\"node\",mountpoint=\"/\"} * 100)" } ]
+    },
+    {
+      "type": "stat",
+      "title": "Uptime",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 7, "w": 6, "x": 18, "y": 1 },
+      "id": 4,
+      "fieldConfig": { "defaults": { "unit": "s", "color": { "mode": "fixed", "fixedColor": "blue" } }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "node_time_seconds{job=\"node\"} - node_boot_time_seconds{job=\"node\"}" } ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Rede (bytes/s)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 5,
+      "fieldConfig": { "defaults": { "unit": "Bps", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "rate(node_network_receive_bytes_total{job=\"node\",device!=\"lo\"}[5m])", "legendFormat": "recebido {{device}}" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "rate(node_network_transmit_bytes_total{job=\"node\",device!=\"lo\"}[5m])", "legendFormat": "enviado {{device}}" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Load average",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 6,
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "node_load1{job=\"node\"}", "legendFormat": "1m" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "node_load5{job=\"node\"}", "legendFormat": "5m" },
+        { "refId": "C", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "node_load15{job=\"node\"}", "legendFormat": "15m" }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Containers",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 16 },
+      "id": 101
+    },
+    {
+      "type": "timeseries",
+      "title": "CPU por container (%)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 17 },
+      "id": 7,
+      "fieldConfig": { "defaults": { "unit": "percent", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(container_cpu_usage_seconds_total{job=\"cadvisor\",name!=\"\"}[5m])) by (name) * 100", "legendFormat": "{{name}}" } ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Memória por container",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 17 },
+      "id": 8,
+      "fieldConfig": { "defaults": { "unit": "bytes", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(container_memory_usage_bytes{job=\"cadvisor\",name!=\"\"}) by (name)", "legendFormat": "{{name}}" } ]
+    },
+    {
+      "type": "row",
+      "title": "PostgreSQL",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 25 },
+      "id": 102
+    },
+    {
+      "type": "stat",
+      "title": "Postgres up",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 26 },
+      "id": 9,
+      "fieldConfig": { "defaults": { "unit": "short", "mappings": [ { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } } ], "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] } }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "pg_up{job=\"postgres\"}" } ]
+    },
+    {
+      "type": "stat",
+      "title": "Conexões ativas",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 26 },
+      "id": 10,
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "fixed", "fixedColor": "blue" } }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(pg_stat_database_numbackends{job=\"postgres\",datname=\"n8n\"})" } ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Transações por segundo (commit x rollback)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 26 },
+      "id": 11,
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "rate(pg_stat_database_xact_commit{job=\"postgres\",datname=\"n8n\"}[5m])", "legendFormat": "commit" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "rate(pg_stat_database_xact_rollback{job=\"postgres\",datname=\"n8n\"}[5m])", "legendFormat": "rollback" }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Rede (ntopng)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 32 },
+      "id": 103
+    },
+    {
+      "type": "timeseries",
+      "title": "Rede - Throughput (bps)",
+      "datasource": { "type": "influxdb", "uid": "influxdb" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 33 },
+      "id": 12,
+      "fieldConfig": { "defaults": { "unit": "bps", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "influxdb", "uid": "influxdb" }, "query": "SELECT mean(\"bps\") FROM \"iface:throughput_bps\" WHERE $timeFilter GROUP BY time($__interval) fill(null)", "rawQuery": true, "resultFormat": "time_series" } ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Rede - Fluxos ativos",
+      "datasource": { "type": "influxdb", "uid": "influxdb" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 33 },
+      "id": 13,
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "influxdb", "uid": "influxdb" }, "query": "SELECT mean(\"num_flows\") FROM \"iface:flows\" WHERE $timeFilter GROUP BY time($__interval) fill(null)", "rawQuery": true, "resultFormat": "time_series" } ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Rede - Protocolos L7 (nDPI)",
+      "datasource": { "type": "influxdb", "uid": "influxdb" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 41 },
+      "id": 14,
+      "fieldConfig": { "defaults": { "unit": "bps", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "influxdb", "uid": "influxdb" }, "query": "SELECT non_negative_derivative(mean(\"bytes\"), 1s) * 8 AS \"bps\" FROM \"iface:ndpi\" WHERE $timeFilter GROUP BY time($__interval), \"protocol\" fill(null)", "rawQuery": true, "resultFormat": "time_series", "alias": "$tag_protocol" } ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Rede - Taxa de tráfego (derivada)",
+      "datasource": { "type": "influxdb", "uid": "influxdb" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 41 },
+      "id": 15,
+      "fieldConfig": { "defaults": { "unit": "bps", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "influxdb", "uid": "influxdb" }, "query": "SELECT non_negative_derivative(mean(\"bytes\"), 1s) * 8 AS \"bps\" FROM \"iface:traffic\" WHERE $timeFilter GROUP BY time($__interval) fill(null)", "rawQuery": true, "resultFormat": "time_series" } ]
+    }
+  ]
+}
