@@ -15,40 +15,40 @@ groups:
 
       - alert: NodeDellCpuAlta
         expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{job="node-dell",mode="idle"}[5m])) * 100) > 90
-        for: 15m
+        for: 10m
         labels:
           severity: warning
           service: host
           server: dell
         annotations:
           summary: "CPU alta no Dell"
-          description: "A CPU de {{ $labels.instance }} permaneceu acima de 90% por 15 minutos. Valor atual: {{ $value | printf \"%.1f\" }}%."
+          description: "A CPU de {{ $labels.instance }} permaneceu acima de 90% por 10 minutos. Valor atual: {{ $value | printf \"%.1f\" }}%."
 
       - alert: NodeDellMemoriaAlta
         expr: 100 * (1 - (node_memory_MemAvailable_bytes{job="node-dell"} / node_memory_MemTotal_bytes{job="node-dell"})) > 90
-        for: 15m
+        for: 10m
         labels:
           severity: warning
           service: host
           server: dell
         annotations:
           summary: "Memoria alta no Dell"
-          description: "O uso de memoria de {{ $labels.instance }} permaneceu acima de 90% por 15 minutos. Valor atual: {{ $value | printf \"%.1f\" }}%."
+          description: "O uso de memoria de {{ $labels.instance }} permaneceu acima de 90% por 10 minutos. Valor atual: {{ $value | printf \"%.1f\" }}%."
 
       - alert: NodeDellDiscoRaizAlerta
-        expr: (100 * (1 - (node_filesystem_avail_bytes{job="node-dell",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{job="node-dell",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"})) > 85) and (100 * (1 - (node_filesystem_avail_bytes{job="node-dell",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{job="node-dell",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"})) <= 95)
-        for: 30m
+        expr: (100 * (1 - (node_filesystem_avail_bytes{job="node-dell",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{job="node-dell",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"})) > 90) and (100 * (1 - (node_filesystem_avail_bytes{job="node-dell",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{job="node-dell",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"})) <= 95)
+        for: 10m
         labels:
           severity: warning
           service: filesystem
           server: dell
         annotations:
-          summary: "Disco raiz do Dell acima de 85%"
+          summary: "Disco raiz do Dell acima de 90%"
           description: "O filesystem raiz de {{ $labels.instance }} esta com {{ $value | printf \"%.1f\" }}% de uso."
 
       - alert: NodeDellDiscoRaizCritico
         expr: 100 * (1 - (node_filesystem_avail_bytes{job="node-dell",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{job="node-dell",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"})) > 95
-        for: 15m
+        for: 10m
         labels:
           severity: critical
           service: filesystem

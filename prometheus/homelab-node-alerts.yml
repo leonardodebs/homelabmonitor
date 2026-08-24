@@ -1,0 +1,47 @@
+# Alertas de CPU, memoria e disco do servidor Lenovo (vmlab).
+groups:
+  - name: homelab-node
+    rules:
+      - alert: NodeLenovoCpuAlta
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{job="node",mode="idle"}[5m])) * 100) > 90
+        for: 10m
+        labels:
+          severity: warning
+          service: host
+          server: lenovo
+        annotations:
+          summary: "CPU alta no Lenovo"
+          description: "A CPU de {{ $labels.instance }} permaneceu acima de 90% por 10 minutos. Valor atual: {{ $value | printf \"%.1f\" }}%."
+
+      - alert: NodeLenovoMemoriaAlta
+        expr: 100 * (1 - (node_memory_MemAvailable_bytes{job="node"} / node_memory_MemTotal_bytes{job="node"})) > 90
+        for: 10m
+        labels:
+          severity: warning
+          service: host
+          server: lenovo
+        annotations:
+          summary: "Memoria alta no Lenovo"
+          description: "O uso de memoria de {{ $labels.instance }} permaneceu acima de 90% por 10 minutos. Valor atual: {{ $value | printf \"%.1f\" }}%."
+
+      - alert: NodeLenovoDiscoRaizAlerta
+        expr: (100 * (1 - (node_filesystem_avail_bytes{job="node",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{job="node",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"})) > 90) and (100 * (1 - (node_filesystem_avail_bytes{job="node",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{job="node",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"})) <= 95)
+        for: 10m
+        labels:
+          severity: warning
+          service: filesystem
+          server: lenovo
+        annotations:
+          summary: "Disco raiz do Lenovo acima de 90%"
+          description: "O filesystem raiz de {{ $labels.instance }} esta com {{ $value | printf \"%.1f\" }}% de uso."
+
+      - alert: NodeLenovoDiscoRaizCritico
+        expr: 100 * (1 - (node_filesystem_avail_bytes{job="node",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{job="node",mountpoint="/",fstype!~"tmpfs|overlay|squashfs"})) > 95
+        for: 10m
+        labels:
+          severity: critical
+          service: filesystem
+          server: lenovo
+        annotations:
+          summary: "Disco raiz do Lenovo em nivel critico"
+          description: "O filesystem raiz de {{ $labels.instance }} esta com {{ $value | printf \"%.1f\" }}% de uso."

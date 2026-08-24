@@ -52,6 +52,7 @@ Dell 192.168.100.2                         Lenovo 192.168.100.3
 │   └── restic-dashboard.json
 ├── prometheus/
 │   ├── dell-node-alerts.yml
+│   ├── homelab-node-alerts.yml
 │   ├── dell-cadvisor-scrape.yml
 │   ├── dell-node-scrape.yml
 │   ├── restic-alerts.yml
@@ -230,7 +231,7 @@ A porta publicada `8081` é traduzida para `8080` no container. Sua regra usa
 Copie as regras para a stack de monitoramento:
 
 ```powershell
-scp .\prometheus\restic-alerts.yml .\prometheus\dell-node-alerts.yml leonardo@192.168.100.3:/home/leonardo/homelab-automation-server/docker/monitoring/prometheus/
+scp .\prometheus\restic-alerts.yml .\prometheus\dell-node-alerts.yml .\prometheus\homelab-node-alerts.yml leonardo@192.168.100.3:/home/leonardo/homelab-automation-server/docker/monitoring/prometheus/
 ```
 
 O `prometheus.yml` do Lenovo deve conter:
@@ -239,6 +240,7 @@ O `prometheus.yml` do Lenovo deve conter:
 rule_files:
   - /etc/prometheus/restic-alerts.yml
   - /etc/prometheus/dell-node-alerts.yml
+  - /etc/prometheus/homelab-node-alerts.yml
 
 alerting:
   alertmanagers:
@@ -286,6 +288,7 @@ volumes:
   - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
   - ./prometheus/restic-alerts.yml:/etc/prometheus/restic-alerts.yml:ro
   - ./prometheus/dell-node-alerts.yml:/etc/prometheus/dell-node-alerts.yml:ro
+  - ./prometheus/homelab-node-alerts.yml:/etc/prometheus/homelab-node-alerts.yml:ro
   - prometheus_data:/prometheus
 ```
 
@@ -297,6 +300,7 @@ docker run --rm --entrypoint promtool \
   -v "$PWD/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \
   -v "$PWD/prometheus/restic-alerts.yml:/etc/prometheus/restic-alerts.yml:ro" \
   -v "$PWD/prometheus/dell-node-alerts.yml:/etc/prometheus/dell-node-alerts.yml:ro" \
+  -v "$PWD/prometheus/homelab-node-alerts.yml:/etc/prometheus/homelab-node-alerts.yml:ro" \
   prom/prometheus:v3.13.2 check config /etc/prometheus/prometheus.yml
 docker compose config --quiet
 docker compose up -d prometheus
@@ -363,13 +367,17 @@ gráficos históricos começam a ser preenchidos a partir desse momento.
 | `ResticLockPreso` | lock presente por mais de 2 horas | warning |
 | `ResticRepoCrescendoRapido` | crescimento superior a 5 GiB em 7 dias | info |
 | `NodeDellExporterDown` | Node Exporter inacessível por 5 minutos | critical |
-| `NodeDellCpuAlta` | CPU acima de 90% por 15 minutos | warning |
-| `NodeDellMemoriaAlta` | memória acima de 90% por 15 minutos | warning |
-| `NodeDellDiscoRaizAlerta` | disco raiz entre 85% e 95% por 30 minutos | warning |
-| `NodeDellDiscoRaizCritico` | disco raiz acima de 95% por 15 minutos | critical |
+| `NodeDellCpuAlta` | CPU acima de 90% por 10 minutos | warning |
+| `NodeDellMemoriaAlta` | memória acima de 90% por 10 minutos | warning |
+| `NodeDellDiscoRaizAlerta` | disco raiz entre 90% e 95% por 10 minutos | warning |
+| `NodeDellDiscoRaizCritico` | disco raiz acima de 95% por 10 minutos | critical |
 | `NodeDellFilesystemSomenteLeitura` | filesystem raiz somente leitura por 5 minutos | critical |
 | `NodeDellTemperaturaAlta` | sensor acima de 75 °C por 5 minutos | warning |
 | `CadvisorDellDown` | cAdvisor inacessível por 5 minutos | critical |
+| `NodeLenovoCpuAlta` | CPU acima de 90% por 10 minutos | warning |
+| `NodeLenovoMemoriaAlta` | memória acima de 90% por 10 minutos | warning |
+| `NodeLenovoDiscoRaizAlerta` | disco raiz entre 90% e 95% por 10 minutos | warning |
+| `NodeLenovoDiscoRaizCritico` | disco raiz acima de 95% por 10 minutos | critical |
 
 As regras são avaliadas pelo Prometheus e enviadas ao Alertmanager, que agrupa e
 deduplica os eventos. O receptor envia alertas ativos e resolvidos para
@@ -417,6 +425,7 @@ docker run --rm --entrypoint promtool \
   -v "$PWD/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro" \
   -v "$PWD/prometheus/restic-alerts.yml:/etc/prometheus/restic-alerts.yml:ro" \
   -v "$PWD/prometheus/dell-node-alerts.yml:/etc/prometheus/dell-node-alerts.yml:ro" \
+  -v "$PWD/prometheus/homelab-node-alerts.yml:/etc/prometheus/homelab-node-alerts.yml:ro" \
   prom/prometheus:v3.13.2 check config /etc/prometheus/prometheus.yml
 docker compose config --quiet
 docker compose up -d alertmanager prometheus

@@ -28,6 +28,7 @@ $requiredFiles = @(
     'prometheus/restic-alerts.yml',
     'prometheus/restic-scrape.yml',
     'prometheus/dell-node-alerts.yml',
+    'prometheus/homelab-node-alerts.yml',
     'prometheus/dell-node-scrape.yml',
     'prometheus/dell-cadvisor-scrape.yml',
     'alertmanager/alertmanager.yml',
@@ -162,10 +163,20 @@ if ($unscopedResticQueries.Count -gt 0) {
     throw 'O dashboard Restic possui consultas sem filtro job="restic".'
 }
 
+$lenovoAlerts = Get-Content -Raw -LiteralPath 'prometheus/homelab-node-alerts.yml'
+foreach ($alertName in @('NodeLenovoCpuAlta', 'NodeLenovoMemoriaAlta', 'NodeLenovoDiscoRaizAlerta')) {
+    if ($lenovoAlerts -notmatch [regex]::Escape("alert: $alertName")) {
+        throw "Alerta obrigatorio ausente para o Lenovo: $alertName."
+    }
+}
+if ($lenovoAlerts -notmatch 'job="node"' -or $lenovoAlerts -notmatch '> 90') {
+    throw 'Os alertas do Lenovo devem usar o job node e limite superior a 90%.'
+}
+
 if (-not $SkipPromtool) {
     $promtool = Get-Command promtool -ErrorAction SilentlyContinue
     if ($promtool) {
-        foreach ($rulesPath in @('prometheus/restic-alerts.yml', 'prometheus/dell-node-alerts.yml')) {
+        foreach ($rulesPath in @('prometheus/restic-alerts.yml', 'prometheus/dell-node-alerts.yml', 'prometheus/homelab-node-alerts.yml')) {
             Invoke-NativeChecked -Name "promtool check rules ($rulesPath)" -Command {
                 promtool check rules $rulesPath
             }
@@ -177,7 +188,7 @@ if (-not $SkipPromtool) {
             throw 'Promtool nao esta instalado e o Docker Engine nao esta disponivel. Use -SkipPromtool apenas para validar estrutura e JSON.'
         }
 
-        foreach ($relativeRulesPath in @('prometheus/restic-alerts.yml', 'prometheus/dell-node-alerts.yml')) {
+        foreach ($relativeRulesPath in @('prometheus/restic-alerts.yml', 'prometheus/dell-node-alerts.yml', 'prometheus/homelab-node-alerts.yml')) {
             $rulesPath = (Resolve-Path -LiteralPath $relativeRulesPath).Path
             Invoke-NativeChecked -Name "promtool via Docker ($relativeRulesPath)" -Command {
                 docker run --rm --entrypoint promtool `
