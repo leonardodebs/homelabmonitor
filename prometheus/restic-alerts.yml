@@ -29,9 +29,15 @@ groups:
       # ---------------------------------------------------------------------
       # Backup atrasado. O snapshot mais recente passou da janela esperada.
       # 26h cobre o backup diario mais o RandomizedDelaySec de 5 min.
+      #
+      # O restic-exporter inclui client_version no label set. Quando o
+      # binario do restic e trocado (ex: 0.16.4 -> 0.19.1), o ultimo
+      # snapshot feito pela versao antiga vira uma serie propria que nunca
+      # mais avanca. Sem o max by (client_hostname, instance), essa serie
+      # orfa dispara o alerta para sempre mesmo com backups novos em dia.
       # ---------------------------------------------------------------------
       - alert: ResticBackupAtrasado
-        expr: (time() - restic_backup_timestamp{job="restic"} > 26 * 3600) and (time() - restic_backup_timestamp{job="restic"} <= 48 * 3600)
+        expr: (time() - max by (client_hostname, instance) (restic_backup_timestamp{job="restic"}) > 26 * 3600) and (time() - max by (client_hostname, instance) (restic_backup_timestamp{job="restic"}) <= 48 * 3600)
         for: 30m
         labels:
           severity: warning
@@ -41,7 +47,7 @@ groups:
           description: "O ultimo snapshot de {{ $labels.client_hostname }} tem {{ $value | humanizeDuration }}. O backup diario das 03:15 pode ter falhado. Verifique: systemctl status homelab-backup.service."
 
       - alert: ResticBackupCritico
-        expr: time() - restic_backup_timestamp{job="restic"} > 48 * 3600
+        expr: time() - max by (client_hostname, instance) (restic_backup_timestamp{job="restic"}) > 48 * 3600
         for: 30m
         labels:
           severity: critical
